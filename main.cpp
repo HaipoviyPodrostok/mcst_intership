@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstdint>
 
 #include "graph.hpp"
 
@@ -18,7 +19,7 @@ int main() {
     }
     else if (command == "EDGE") {
       std::string from, to;
-      int         weight;
+      uint64_t    weight;
       std::cin >> from >> to >> weight;
       graph.AddEdge(from, to, weight);
     }

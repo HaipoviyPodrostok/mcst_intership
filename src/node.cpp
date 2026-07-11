@@ -22,6 +22,19 @@ void Node::RemoveEdgeTo(std::vector<Edge*>& vec, Edge* edge) {
   }
 }
 
-void Node::RemoveInEdgde(Edge* input_edge) { RemoveEdgeTo(input_, input_edge); }
+void Node::RemoveInEdge(Edge* input_edge) { RemoveEdgeTo(input_, input_edge); }
 
 void Node::RemoveOutEdge(Edge* output_edge) { RemoveEdgeTo(output_, output_edge); }
+
+void Node::RemoveEdge(Edge* edge) {
+  RemoveInEdge(edge);
+  RemoveOutEdge(edge);
+}
+const std::vector<Edge*>& Node::GetInputVec() const {
+  return input_;
+}
+
+const std::vector<Edge*>& Node::GetOutputVec() const {
+  return output_;
+}
+

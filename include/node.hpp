@@ -11,12 +11,15 @@ class Node {
 
   void AddInEdge(Edge* input_edge);
   void AddOutEdge(Edge* output_edge);
-  void RemoveInEdgde(Edge* input_edge);
+  void RemoveInEdge(Edge* input_edge);
   void RemoveOutEdge(Edge* output_edge);
+  void RemoveEdge(Edge* edge);
+
+  const std::vector<Edge*>& GetInputVec() const;
+  const std::vector<Edge*>& GetOutputVec() const;
 
  private:
-  std::string id_;
-
+  std::string        id_;
   std::vector<Edge*> input_;
   std::vector<Edge*> output_;
 

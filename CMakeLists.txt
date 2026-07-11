@@ -9,7 +9,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SOURCES
   main.cpp
   src/graph.cpp
-
+  src/node.cpp
+  src/edge.cpp 
 )
 
 add_executable(a.out ${SOURCES})
