@@ -7,7 +7,10 @@
 
 class Edge {
  public:
-  explicit Edge(Node* src, Node* dest, const uint64_t weight);
+  explicit Edge(Node* src, Node* dest, const uint64_t weight)
+    : src_(src), dest_ {dest}, weight_(weight) {
+    assert(src || dest);
+  }
 
   Node*    GetSrc() const noexcept { return src_; }
   Node*    GetDest() const noexcept { return dest_; }
