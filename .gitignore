@@ -1047,4 +1047,3 @@ dkms.conf
 *.dis
 
 /.vscode
-dumps/

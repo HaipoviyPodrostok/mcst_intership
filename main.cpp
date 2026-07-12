@@ -66,22 +66,47 @@ int main() {
       else if (command == "RPO_NUMBERING") {
         std::string id;
         std::cin >> id;
-        RunRpoNumbering(graph, id);
+        
+        auto result = RunRpoNumbering(graph, id);
+        
+        for (const auto& loop : result.loops) {
+          std::cout << "Found loop " << loop.first << "->" << loop.second << "\n";
+        }
+        for (size_t i = 0; i < result.post_order.size(); ++i) {
+          if (i > 0) std::cout << " ";
+          std::cout << result.post_order[i];
+        }
+        std::cout << "\n";
       }
       else if (command == "DIJKSTRA") {
         std::string id;
         std::cin >> id;
-        RunDijkstra(graph, id);
+        
+        auto results = RunDijkstra(graph, id);
+        
+        for (const auto& [node, dist] : results) {
+          std::cout << node << " " << dist << "\n";
+        }
       }
       else if (command == "MAXFLOW") {
         std::string from, to;
         std::cin >> from >> to;
-        RunMaxFlow(graph, from, to);
+        
+        std::cout << RunMaxFlow(graph, from, to) << "\n";
       }
       else if (command == "TARJAN") {
         std::string id;
         std::cin >> id;
-        RunTarjan(graph, id);
+        
+        auto sccs = RunTarjan(graph, id);
+        
+        for (const auto& scc : sccs) {
+          for (size_t i = 0; i < scc.size(); ++i) {
+            if (i > 0) std::cout << " ";
+            std::cout << scc[i];
+          }
+          std::cout << "\n";
+        }
       }
     }
     catch (const std::exception& e) {

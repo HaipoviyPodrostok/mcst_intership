@@ -1,0 +1,22 @@
+digraph G {
+    "J";
+    "J" -> "A" [label="100"];
+    "G";
+    "F";
+    "F" -> "G" [label="50"];
+    "E";
+    "E" -> "F" [label="25"];
+    "B";
+    "B" -> "D" [label="20"];
+    "B" -> "E" [label="5"];
+    "I";
+    "I" -> "J" [label="20"];
+    "D";
+    "D" -> "F" [label="10"];
+    "D" -> "I" [label="15"];
+    "C";
+    "C" -> "D" [label="15"];
+    "A";
+    "A" -> "B" [label="10"];
+    "A" -> "C" [label="5"];
+}

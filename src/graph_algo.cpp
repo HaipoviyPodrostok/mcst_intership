@@ -21,8 +21,9 @@ enum class DfsColor {
 };
 
 void PostOrderDfs(const Graph& graph, const std::string& id,
-                  std::unordered_map<std::string, DfsColor>& color,
-                  std::vector<std::string>&                  post_order) {
+                  std::unordered_map<std::string, DfsColor>&        color,
+                  std::vector<std::string>&                         post_order,
+                  std::vector<std::pair<std::string, std::string>>& loops) {
   color[id] = DfsColor::Gray;
 
   Node*              node         = graph.GetNodes().at(id).get();
@@ -36,11 +37,9 @@ void PostOrderDfs(const Graph& graph, const std::string& id,
   for (Edge* edge : sorted_edges) {
     const std::string& dest_id = edge->GetDest()->GetId();
 
-    if (color[dest_id] == DfsColor::Gray) {
-      std::cout << "Found loop " << id << "->" << dest_id << "\n";
-    }
+    if (color[dest_id] == DfsColor::Gray) { loops.push_back({id, dest_id}); }
     else if (color[dest_id] == DfsColor::White) {
-      PostOrderDfs(graph, dest_id, color, post_order);
+      PostOrderDfs(graph, dest_id, color, post_order, loops);
     }
   }
 
@@ -66,7 +65,7 @@ void TarjanDfs(const Graph& graph, const std::string& id, TarjanState& state) {
 
   Node*              node         = graph.GetNodes().at(id).get();
   std::vector<Edge*> sorted_edges = node->GetOutputVec();
-  
+
   std::sort(sorted_edges.begin(), sorted_edges.end(),
             [](const Edge* a, const Edge* b) {
               return a->GetDest()->GetId() < b->GetDest()->GetId();
@@ -74,12 +73,12 @@ void TarjanDfs(const Graph& graph, const std::string& id, TarjanState& state) {
 
   for (Edge* edge : sorted_edges) {
     const std::string& dest = edge->GetDest()->GetId();
-  
+
     if (state.node_index[dest] == -1) {
       TarjanDfs(graph, dest, state);
       state.lowlink[id] = std::min(state.lowlink[id], state.lowlink[dest]);
     }
-  
+
     else if (state.on_stack[dest]) {
       state.lowlink[id] = std::min(state.lowlink[id], state.node_index[dest]);
     }
@@ -87,7 +86,7 @@ void TarjanDfs(const Graph& graph, const std::string& id, TarjanState& state) {
 
   if (state.lowlink[id] == state.node_index[id]) {
     std::vector<std::string> scc;
-    
+
     while (true) {
       std::string w = state.stack.back();
       state.stack.pop_back();
@@ -95,33 +94,30 @@ void TarjanDfs(const Graph& graph, const std::string& id, TarjanState& state) {
       scc.push_back(w);
       if (w == id) { break; }
     }
-    
+
     state.sccs.push_back(std::move(scc));
   }
 }
 
 }  // namespace
 
-void RunRpoNumbering(const Graph& graph, const std::string& start_id) {
+RpoResult RunRpoNumbering(const Graph& graph, const std::string& start_id) {
   graph.CheckNodesExist(start_id);
 
   std::unordered_map<std::string, DfsColor> color;
   for (const auto& [id, _] : graph.GetNodes()) { color[id] = DfsColor::White; }
 
-  std::vector<std::string> post_order;
+  RpoResult result;
 
-  PostOrderDfs(graph, start_id, color, post_order);
+  PostOrderDfs(graph, start_id, color, result.post_order, result.loops);
 
-  std::reverse(post_order.begin(), post_order.end());
+  std::reverse(result.post_order.begin(), result.post_order.end());
 
-  for (size_t i = 0; i < post_order.size(); ++i) {
-    if (i > 0) std::cout << " ";
-    std::cout << post_order[i];
-  }
-  std::cout << "\n";
+  return result;
 }
 
-void RunDijkstra(const Graph& graph, const std::string& start_id) {
+std::vector<std::pair<std::string, uint64_t>> RunDijkstra(
+  const Graph& graph, const std::string& start_id) {
   graph.CheckNodesExist(start_id);
 
   const auto& nodes = graph.GetNodes();
@@ -160,21 +156,21 @@ void RunDijkstra(const Graph& graph, const std::string& start_id) {
     }
   }
 
-  std::vector<std::pair<std::string, uint64_t>> results;
+  std::vector<std::pair<std::string, uint64_t>> result;
 
   for (const auto& [id, dist] : distances) {
     if (id != start_id && dist != std::numeric_limits<uint64_t>::max()) {
-      results.push_back({id, dist});
+      result.push_back({id, dist});
     }
   }
 
-  std::sort(results.begin(), results.end());
+  std::sort(result.begin(), result.end());
 
-  for (const auto& [id, dist] : results) { std::cout << id << " " << dist << "\n"; }
+  return result;
 }
 
-void RunMaxFlow(const Graph& graph, const std::string& source,
-                const std::string& sink) {
+uint64_t RunMaxFlow(const Graph& graph, const std::string& source,
+                    const std::string& sink) {
   graph.CheckNodesExist(source, sink);
 
   const auto& nodes = graph.GetNodes();
@@ -185,7 +181,7 @@ void RunMaxFlow(const Graph& graph, const std::string& source,
 
   for (const auto& [id, node_ptr] : nodes) {
     for (const Edge* edge : node_ptr->GetOutputVec()) {
-      const std::string& dest = edge->GetDest()->GetId();      
+      const std::string& dest = edge->GetDest()->GetId();
       residual[id][dest] += edge->GetWeight();
       residual[dest][id];
     }
@@ -226,16 +222,17 @@ void RunMaxFlow(const Graph& graph, const std::string& source,
     max_flow += path_flow;
   }
 
-  std::cout << max_flow << "\n";
+  return max_flow;
 }
 
-void RunTarjan(const Graph& graph, const std::string& start_id) {
+std::vector<std::vector<std::string>> RunTarjan(const Graph&       graph,
+                                                const std::string& start_id) {
   graph.CheckNodesExist(start_id);
 
   const auto& nodes = graph.GetNodes();
 
   TarjanState state;
-  
+
   for (const auto& [id, _] : nodes) {
     state.node_index[id] = -1;
     state.on_stack[id]   = false;
@@ -247,14 +244,13 @@ void RunTarjan(const Graph& graph, const std::string& start_id) {
     if (state.node_index[id] == -1) { TarjanDfs(graph, id, state); }
   }
 
+  std::vector<std::vector<std::string>> result;
   for (auto& scc : state.sccs) {
     if (scc.size() > 1) {
       std::sort(scc.begin(), scc.end());
-      for (size_t i = 0; i < scc.size(); ++i) {
-        if (i > 0) std::cout << " ";
-        std::cout << scc[i];
-      }
-      std::cout << "\n";
+      result.push_back(std::move(scc));
     }
   }
+
+  return result;
 }
