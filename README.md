@@ -63,7 +63,7 @@ ctest --output-on-failure
 $ ./a.out < tests/test_1.txt
 ```
 
-Или интерактивно в консоли:
+Или:
 ```text
 NODE A
 NODE B
