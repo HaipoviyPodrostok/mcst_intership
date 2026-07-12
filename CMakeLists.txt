@@ -10,7 +10,8 @@ set(SOURCES
   main.cpp
   src/graph.cpp
   src/node.cpp
-  src/edge.cpp 
+  src/edge.cpp
+  src/graph_algo.cpp
 )
 
 add_executable(a.out ${SOURCES})
@@ -19,5 +20,8 @@ target_include_directories(a.out PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-
+option(ENABLE_DUMP "Enable graphviz dumps " OFF)
+if (ENABLE_DUMP)
+    target_compile_definitions(a.out PRIVATE ENABLE_DUMP)
+endif()
 

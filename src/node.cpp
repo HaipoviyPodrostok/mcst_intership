@@ -30,11 +30,3 @@ void Node::RemoveEdge(Edge* edge) {
   RemoveInEdge(edge);
   RemoveOutEdge(edge);
 }
-const std::vector<Edge*>& Node::GetInputVec() const {
-  return input_;
-}
-
-const std::vector<Edge*>& Node::GetOutputVec() const {
-  return output_;
-}
-

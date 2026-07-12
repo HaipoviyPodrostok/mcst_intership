@@ -1,6 +1,7 @@
 #include "graph.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -22,10 +23,10 @@ void Graph::AddEdge(const std::string& src_id, const std::string& dest_id,
   Node* src_node  = nodes_.at(src_id).get();
   Node* dest_node = nodes_.at(dest_id).get();
 
-  auto new_edge = std::make_unique<Edge>(src_node, dest_node, weight);
-  edges_.push_back(std::move(new_edge));
-
+  auto  new_edge     = std::make_unique<Edge>(src_node, dest_node, weight);
   Edge* new_edge_ptr = new_edge.get();
+
+  edges_.push_back(std::move(new_edge));
 
   src_node->AddOutEdge(new_edge_ptr);
   dest_node->AddInEdge(new_edge_ptr);
@@ -41,7 +42,6 @@ void Graph::RemoveEdge(const std::string& src_id, const std::string& dest_id) {
   Node* dest = dest_it->second.get();
 
   const std::vector<Edge*>& src_output = src->GetOutputVec();
-  const std::vector<Edge*>& dest_input = dest->GetInputVec();
 
   auto local_edge_it =
     std::find_if(src_output.begin(), src_output.end(),
@@ -79,20 +79,11 @@ void Graph::RemoveNode(const std::string& id) {
 
   Node* node_to_remove = nodes_.at(id).get();
 
-  const std::vector<Edge*>& input  = node_to_remove->GetInputVec();
-  const std::vector<Edge*>& output = node_to_remove->GetOutputVec();
+  const std::vector<Edge*> input  = node_to_remove->GetInputVec();
+  const std::vector<Edge*> output = node_to_remove->GetOutputVec();
 
-  while (!input.empty()) {
-    RemoveEdgeByPtr(input.back());
-  }
-
-  while (!output.empty()) {
-    RemoveEdgeByPtr(output.back());
-  }
-
-  for (auto& curr_edge : input) {
-    RemoveEdgeByPtr(curr_edge);
-  }
+  for (Edge* e : input) { RemoveEdgeByPtr(e); }
+  for (Edge* e : output) { RemoveEdgeByPtr(e); }
 
   nodes_.erase(id);
 }
@@ -114,3 +105,21 @@ void Graph::CheckNodesExist(const std::string& src_id,
 
   if (!has_dest) { throw std::invalid_argument("Unknown node " + dest_id); }
 }
+
+#ifdef ENABLE_DUMP
+void DumpToGraphviz(const Graph& graph, std::ostream& out) {
+  out << "digraph G {\n";
+  const auto& nodes = graph.GetNodes();
+  
+  for (const auto& [id, node_ptr] : nodes) {
+    out << "    \"" << id << "\";\n";
+    
+    for (const Edge* edge : node_ptr->GetOutputVec()) {
+      out << "    \"" << id << "\" -> \"" << edge->GetDest()->GetId() << "\" "
+          << "[label=\"" << edge->GetWeight() << "\"];\n";
+    }
+  }
+  
+  out << "}\n";
+}
+#endif

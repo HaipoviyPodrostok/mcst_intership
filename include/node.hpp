@@ -15,8 +15,9 @@ class Node {
   void RemoveOutEdge(Edge* output_edge);
   void RemoveEdge(Edge* edge);
 
-  const std::vector<Edge*>& GetInputVec() const;
-  const std::vector<Edge*>& GetOutputVec() const;
+  const std::string&        GetId() const noexcept { return id_; }
+  const std::vector<Edge*>& GetInputVec() const noexcept { return input_; }
+  const std::vector<Edge*>& GetOutputVec() const noexcept { return output_; }
 
  private:
   std::string        id_;
