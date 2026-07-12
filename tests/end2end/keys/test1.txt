@@ -1,0 +1,13 @@
+Unknown node X
+Found loop C->A
+Found loop E->D
+S A B C D E T
+A 15
+B 25
+C 35
+D 15
+E 25
+T 35
+20
+D E
+A B C

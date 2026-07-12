@@ -10,6 +10,8 @@
 - **C++23**
 - CMake 3.14 или выше
 - Graphiz (для дампов)
+- googletest (опционально)
+- python (для e2e тестов)
 ## Сборка проекта
 
 ```bash
@@ -25,6 +27,21 @@ cmake --build build -j$(nproc)
 ```bash
 cmake .. -DENABLE_DUMP=ON
 make -j$(nproc)
+```
+
+### Сборка и запуск тестов
+Проект содержит unit-тесты на базе Google Test и E2E тесты
+
+Чтобы собрать проект с тестами, включите флаг `-DBUILD_TESTING=ON`:
+
+```bash
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build -j$(nproc) 
+```
+
+Запустить все тесты можно с помощью CTest из папки `build`:
+```bash
+ctest --output-on-failure
 ```
 
 ## Синтаксис команд
