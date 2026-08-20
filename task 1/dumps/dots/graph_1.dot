@@ -1,0 +1,19 @@
+digraph G {
+    "E";
+    "E" -> "D" [label="10"];
+    "E" -> "T" [label="10"];
+    "T";
+    "B";
+    "B" -> "C" [label="10"];
+    "D";
+    "D" -> "E" [label="10"];
+    "C";
+    "C" -> "A" [label="10"];
+    "C" -> "T" [label="10"];
+    "C" -> "D" [label="5"];
+    "A";
+    "A" -> "B" [label="10"];
+    "S";
+    "S" -> "A" [label="15"];
+    "S" -> "D" [label="15"];
+}
