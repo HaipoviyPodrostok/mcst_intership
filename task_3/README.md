@@ -1,8 +1,6 @@
 # Задание 3: Реализация прохода SCCP
 
-Реализация алгоритма Sparse Conditional Constant Propagation (SCCP) в виде плагина для LLVM New Pass Manager.
-
-Алгоритм основан на работе Вегмана и Задека и материалах курса К. В. Владимирова.
+Реализация алгоритма Sparse Conditional Constant Propagation (SCCP) в виде плагина для LLVM New Pass Manager. Основан на алгоритме SCCP из книги К. Владимирова "Оптимизирующие компиляторы"
 
 ## Что делает
 
