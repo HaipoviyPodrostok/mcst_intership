@@ -45,33 +45,31 @@ struct MySCCP : PassInfoMixin<MySCCP> {
   };
 
   using Lattice = DenseMap<Value*, ValueState>;
-  Lattice                            LatticeVector;
-  std::stack<Instruction*>           SsaWL;
-  std::stack<BasicBlock*>            CfgWL;
-  DenseMap<const BasicBlock*, bool>  ExecutableBlocks;
+  Lattice                           LatticeVector;
+  std::stack<Instruction*>          SsaWL;
+  std::stack<BasicBlock*>           CfgWL;
+  DenseMap<const BasicBlock*, bool> ExecutableBlocks;
   // храним ребра а не блоки, иначе фи будет видеть значения из недостижимых  входов
   std::set<std::pair<const BasicBlock*, const BasicBlock*>> ExecutedEdges;
 
-  ValueState getValueState(Value* V) {
+  ValueState getValueState(Value* V) const {
     if (auto* C = dyn_cast<Constant>(V)) {
-      return ValueState(C); // сразу возвращаем константу
+      return ValueState(C);  // сразу возвращаем константу
     }
     auto It = LatticeVector.find(V);
-    if (It != LatticeVector.end()) {
-      return It->second;
-    }
+    if (It != LatticeVector.end()) { return It->second; }
     return ValueState(LatticeState::UNDEF);
   }
 
-  void markEdgeExecutable(BasicBlock* From, BasicBlock* To) {
+  void markEdgeExecutable(const BasicBlock* From, const BasicBlock* To) {
     ExecutedEdges.insert({From, To});
     if (!ExecutableBlocks.count(To)) {
       ExecutableBlocks[To] = true;
-      CfgWL.push(To);
+      CfgWL.push(const_cast<BasicBlock*>(To));
     }
   }
 
-  ValueState latticeMeet(const ValueState& LHS, const ValueState& RHS) {
+  ValueState latticeMeet(const ValueState& LHS, const ValueState& RHS) const {
     if (LHS.LatState == LatticeState::UNDEF) { return RHS; }
     if (RHS.LatState == LatticeState::UNDEF) { return LHS; }
 
@@ -81,9 +79,7 @@ struct MySCCP : PassInfoMixin<MySCCP> {
       return ValueState(LatticeState::OVERDEF);
     }
 
-    if (LHS.ConstVal == RHS.ConstVal) {
-      return LHS;
-    }
+    if (LHS.ConstVal == RHS.ConstVal) { return LHS; }
     return ValueState(LatticeState::OVERDEF);
   }
 
@@ -112,7 +108,7 @@ struct MySCCP : PassInfoMixin<MySCCP> {
     CfgWL = std::stack<BasicBlock*>();
     ExecutableBlocks.clear();
     ExecutedEdges.clear();
-    NumDeadBlocks = 0;
+    NumDeadBlocks          = 0;
     NumConstantsPropagated = 0;
 
     CfgWL.push(&F.getEntryBlock());
@@ -156,7 +152,7 @@ struct MySCCP : PassInfoMixin<MySCCP> {
       if (!ExecutedEdges.count({IncBlock, PNode->getParent()})) { continue; }
 
       ValueState IncValueState = getValueState(PNode->getIncomingValue(i));
-      NewState = latticeMeet(NewState, IncValueState);
+      NewState                 = latticeMeet(NewState, IncValueState);
       if (NewState.LatState == LatticeState::OVERDEF) { break; }
     }
 
@@ -170,7 +166,7 @@ struct MySCCP : PassInfoMixin<MySCCP> {
     if (LHSState.LatState == LatticeState::UNDEF ||
         RHSState.LatState == LatticeState::UNDEF)
     {
-      // если хотя бы один операнд undef - ждем 
+      // если хотя бы один операнд undef - ждем
       return;
     }
 
@@ -227,6 +223,32 @@ struct MySCCP : PassInfoMixin<MySCCP> {
       }
     }
 
+    // заменяем условные переходы с известным условием на безусловные
+    for (BasicBlock& BB : F) {
+      if (!ExecutableBlocks.count(&BB)) continue;
+
+      if (auto* BI = dyn_cast<BranchInst>(BB.getTerminator())) {
+        if (BI->isConditional()) {
+          ValueState BState = getValueState(BI->getCondition());
+          if (BState.LatState == LatticeState::CONST) {
+            if (auto* CI = dyn_cast<ConstantInt>(BState.ConstVal)) {
+              bool        CondVal   = CI->getZExtValue();
+              BasicBlock* AliveSucc = BI->getSuccessor(CondVal ? 0 : 1);
+              BasicBlock* DeadSucc  = BI->getSuccessor(CondVal ? 1 : 0);
+
+              // убираем эту ветку из phi узлов мертвого наследника
+              DeadSucc->removePredecessor(&BB);
+
+              // заменяем переход на безусловный
+              BranchInst::Create(AliveSucc, BI);
+              BI->eraseFromParent();
+              Changed = true;
+            }
+          }
+        }
+      }
+    }
+
     SmallVector<BasicBlock*, 32> DeadBlocks;
     for (BasicBlock& BB : F) {
       if (!ExecutableBlocks.count(&BB)) { DeadBlocks.push_back(&BB); }
@@ -235,15 +257,11 @@ struct MySCCP : PassInfoMixin<MySCCP> {
     // сначала убираем мертвые блоки из phi живых наследников, потом удаляем
     for (BasicBlock* BB : DeadBlocks) {
       for (BasicBlock* Succ : successors(BB)) {
-        if (ExecutableBlocks.count(Succ)) {
-          Succ->removePredecessor(BB);
-        }
+        if (ExecutableBlocks.count(Succ)) { Succ->removePredecessor(BB); }
       }
     }
 
-    for (BasicBlock* BB : DeadBlocks) {
-      BB->dropAllReferences();
-    }
+    for (BasicBlock* BB : DeadBlocks) { BB->dropAllReferences(); }
 
     for (BasicBlock* BB : DeadBlocks) {
       BB->eraseFromParent();
@@ -264,17 +282,13 @@ struct MySCCP : PassInfoMixin<MySCCP> {
         auto* BB = CfgWL.top();
         CfgWL.pop();
 
-        for (Instruction& I : *BB) {
-          visitOp(&I);
-        }
+        for (Instruction& I : *BB) { visitOp(&I); }
       }
 
       if (!SsaWL.empty()) {
         auto* Inst = SsaWL.top();
         SsaWL.pop();
-        if (ExecutableBlocks.count(Inst->getParent())) {
-          visitOp(Inst);
-        }
+        if (ExecutableBlocks.count(Inst->getParent())) { visitOp(Inst); }
       }
     }
 
@@ -282,9 +296,7 @@ struct MySCCP : PassInfoMixin<MySCCP> {
 
     outs() << NumConstantsPropagated << "  " << NumDeadBlocks << "\n";
 
-    if (!Changed) {
-      return PreservedAnalyses::all();
-    }
+    if (!Changed) { return PreservedAnalyses::all(); }
 
     return PreservedAnalyses::none();
   }
